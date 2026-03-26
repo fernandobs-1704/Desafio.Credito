@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-Desafio.Credito.Worker-287316fd-6052-45e7-a89f-9a8f7b8e51b3</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Desafio.Credito.Domain\Desafio.Credito.Domain.csproj" />
+    <ProjectReference Include="..\Desafio.Credito.Infrastructure\Desafio.Credito.Infrastructure.csproj" />
+    <ProjectReference Include="..\Desafio.Credito.Shared\Desafio.Credito.Shared.csproj" />
+  </ItemGroup>
+</Project>
