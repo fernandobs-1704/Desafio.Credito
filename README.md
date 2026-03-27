@@ -1,5 +1,11 @@
 # 💰 Desafio Técnico – Cálculo de Crédito (Tabela Price)
-
+![.NET](https://img.shields.io/badge/.NET-8-blue)
+![C#](https://img.shields.io/badge/C%23-Programming-green)
+![SQL Server](https://img.shields.io/badge/Database-SQL%20Server-red)
+![Entity Framework](https://img.shields.io/badge/ORM-Entity%20Framework-purple)
+![Azure Service Bus](https://img.shields.io/badge/Messaging-Service%20Bus-orange)
+![Azure Event Hub](https://img.shields.io/badge/Streaming-Event%20Hub-yellow)
+![Architecture](https://img.shields.io/badge/Architecture-Clean%20Architecture-lightgrey)
 ## 📌 Visão Geral
 
 Esta aplicação foi desenvolvida em **.NET 8** com o objetivo de processar contratos de crédito utilizando o sistema de amortização **Tabela Price**, com **evolução diária do contrato**.
