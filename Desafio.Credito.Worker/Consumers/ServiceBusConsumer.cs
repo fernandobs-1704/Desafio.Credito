@@ -14,7 +14,6 @@ public class ServiceBusConsumer
     private readonly IConfiguration _config;
     private readonly IServiceProvider _serviceProvider;
     private ServiceBusProcessor _processor;
-    //private int _mensagensProcessadas = 0;
 
     public ServiceBusConsumer(IConfiguration config, IServiceProvider serviceProvider)
     {
@@ -51,12 +50,6 @@ public class ServiceBusConsumer
 
     private async Task ProcessMessageAsync(ProcessMessageEventArgs args)
     {
-        // Opção para ler somente uma única mensagem para os testes pois a fila está com muitas msgs
-        //if (_mensagensProcessadas >= 1)
-        //{
-        //    return;
-        //}
-
         string body = args.Message.Body.ToString();
         string queueName = _config["ServiceBus:QueueName"] ?? string.Empty;
         string messageId = args.Message.MessageId ?? string.Empty;
@@ -88,7 +81,6 @@ public class ServiceBusConsumer
             await args.AbandonMessageAsync(args.Message);
         }
 
-        //_mensagensProcessadas = 1;
         await _processor.StopProcessingAsync();
     }
 
@@ -111,7 +103,7 @@ public class ServiceBusConsumer
             "DeliveryCount: " + deliveryCount +
             " | EnqueuedTimeUtc: " + enqueuedTimeUtc.UtcDateTime.ToString("o");
 
-        await TentarRegistrarLogAsync(
+        await RegistrarLogAsync(
             logService,
             CriarLog(
                 LogAcao.InicioProcessamento,
@@ -132,7 +124,7 @@ public class ServiceBusConsumer
                 request.TaxaJurosMensal <= 0 ||
                 request.PrazoMeses <= 0)
             {
-                await TentarRegistrarLogAsync(
+                await RegistrarLogAsync(
                     logService,
                     CriarLog(
                         LogAcao.ValidacaoMensagem,
@@ -144,7 +136,7 @@ public class ServiceBusConsumer
                         "Payload inválido. Os campos valorEmprestimo, taxaJurosMensal e prazoMeses devem ser maiores que zero.",
                         null));
 
-                await TentarRegistrarLogAsync(
+                await RegistrarLogAsync(
                     logService,
                     CriarLog(
                         LogAcao.DeadLetter,
@@ -159,7 +151,7 @@ public class ServiceBusConsumer
                 return ResultadoProcessamentoMensagem.DeadLetter;
             }
 
-            await TentarRegistrarLogAsync(
+            await RegistrarLogAsync(
                 logService,
                 CriarLog(
                     LogAcao.ChamadaApiPrice,
@@ -173,7 +165,7 @@ public class ServiceBusConsumer
 
             var response = await apiClient.CalcularAsync(request);
 
-            await TentarRegistrarLogAsync(
+            await RegistrarLogAsync(
                 logService,
                 CriarLog(
                     LogAcao.ChamadaApiPrice,
@@ -185,7 +177,7 @@ public class ServiceBusConsumer
                     "Chamada à API Price concluída com sucesso.",
                     null));
 
-            await TentarRegistrarLogAsync(
+            await RegistrarLogAsync(
                 logService,
                 CriarLog(
                     LogAcao.PersistenciaBanco,
@@ -199,7 +191,7 @@ public class ServiceBusConsumer
 
             await repository.SalvarAsync(response, CancellationToken.None);
 
-            await TentarRegistrarLogAsync(
+            await RegistrarLogAsync(
                 logService,
                 CriarLog(
                     LogAcao.PersistenciaBanco,
@@ -211,7 +203,7 @@ public class ServiceBusConsumer
                     "Persistência da evolução do contrato concluída com sucesso.",
                     null));
 
-            await TentarRegistrarLogAsync(
+            await RegistrarLogAsync(
                 logService,
                 CriarLog(
                     LogAcao.FimProcessamento,
@@ -227,7 +219,7 @@ public class ServiceBusConsumer
         }
         catch (HttpRequestException ex)
         {
-            await TentarRegistrarLogAsync(
+            await RegistrarLogAsync(
                 logService,
                 CriarLog(
                     LogAcao.ChamadaApiPrice,
@@ -239,7 +231,7 @@ public class ServiceBusConsumer
                     "Erro ao chamar a API Price.",
                     ex));
 
-            await TentarRegistrarLogAsync(
+            await RegistrarLogAsync(
                 logService,
                 CriarLog(
                     LogAcao.AbandonoMensagem,
@@ -255,7 +247,7 @@ public class ServiceBusConsumer
         }
         catch (InvalidOperationException ex)
         {
-            await TentarRegistrarLogAsync(
+            await RegistrarLogAsync(
                 logService,
                 CriarLog(
                     LogAcao.PersistenciaBanco,
@@ -267,7 +259,7 @@ public class ServiceBusConsumer
                     "Erro operacional durante o processamento ou persistência dos dados.",
                     ex));
 
-            await TentarRegistrarLogAsync(
+            await RegistrarLogAsync(
                 logService,
                 CriarLog(
                     LogAcao.AbandonoMensagem,
@@ -283,7 +275,7 @@ public class ServiceBusConsumer
         }
         catch (Exception ex)
         {
-            await TentarRegistrarLogAsync(
+            await RegistrarLogAsync(
                 logService,
                 CriarLog(
                     LogAcao.ErroInfraestrutura,
@@ -295,7 +287,7 @@ public class ServiceBusConsumer
                     "Erro não tratado durante o processamento da mensagem.",
                     ex));
 
-            await TentarRegistrarLogAsync(
+            await RegistrarLogAsync(
                 logService,
                 CriarLog(
                     LogAcao.AbandonoMensagem,
@@ -351,7 +343,7 @@ public class ServiceBusConsumer
         };
     }
 
-    private async Task TentarRegistrarLogAsync(ILogEventService logService, LogDto log)
+    private async Task RegistrarLogAsync(ILogEventService logService, LogDto log)
     {
         try
         {
