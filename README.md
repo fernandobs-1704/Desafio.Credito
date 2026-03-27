@@ -72,6 +72,20 @@ Resultado esperado:
 
 ---
 
+## 🖥️ Pré-requisitos
+
+Para execução da aplicação em ambiente local, é necessário possuir:
+
+- .NET SDK 8 instalado
+- SQL Server (local ou remoto)
+- Visual Studio 2022 (ou superior) ou VS Code
+- Acesso aos serviços Azure utilizados (já configurados no projeto)
+
+### Verificação do .NET
+
+```bash
+dotnet --version
+
 ## 🚀 Execução
 
 ### 1. Restaurar pacotes
