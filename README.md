@@ -124,6 +124,49 @@ Esperado:
 
 ---
 
+### 📊 Exemplo de evolução do contrato (amostra)
+
+Abaixo uma amostra real da evolução do contrato ao longo do tempo:
+
+#### 🔹 Início do contrato
+
+| Dia | Prestação | Juros Período | Amortização | Saldo Após Pagar |
+|-----|----------|---------------|-------------|------------------|
+| 1   | 434.31   | 5.95          | 0.00        | 10005.95         |
+| 2   | 434.31   | 11.90         | 0.00        | 10011.90         |
+| 3   | 434.31   | 17.86         | 0.00        | 10017.86         |
+
+---
+
+#### 🔹 Primeiro ciclo de pagamento (30 dias)
+
+| Dia | Prestação | Juros Período | Amortização | Saldo Após Pagar |
+|-----|----------|---------------|-------------|------------------|
+| 29  | 434.31   | 173.95        | 0.00        | 10173.95         |
+| 30  | 434.31   | 180.00        | 254.31      | 9745.69          |
+| 31  | 434.31   | 5.80          | 0.00        | 9751.49          |
+
+---
+
+#### 🔹 Final do contrato
+
+| Dia | Prestação | Juros Período | Amortização | Saldo Após Pagar |
+|-----|----------|---------------|-------------|------------------|
+| 898 | 434.31   | 7.20          | 0.00        | 434.02           |
+| 899 | 434.31   | 7.46          | 0.00        | 434.28           |
+| 900 | 434.54   | 7.72          | 426.82      | 0.00             |
+
+---
+
+### 📌 Observações
+
+- Os juros são **acumulados diariamente**
+- A amortização ocorre **apenas a cada 30 dias**
+- A prestação permanece **praticamente fixa**, com ajuste final para zerar o saldo
+- O saldo cresce diariamente até o momento do pagamento mensal
+
+---
+  
 ## 🧠 Destaques Técnicos
 
 - Separação clara entre API e Worker
