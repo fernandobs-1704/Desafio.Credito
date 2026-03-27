@@ -12,6 +12,7 @@
 ![Status](https://img.shields.io/badge/status-complete-success)
 
 </p>
+
 ## 📌 Visão Geral
 
 Esta aplicação foi desenvolvida em **.NET 8** com o objetivo de processar contratos de crédito utilizando o sistema de amortização **Tabela Price**, com **evolução diária do contrato**.
