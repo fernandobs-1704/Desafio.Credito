@@ -29,6 +29,7 @@ A solução está organizada nos seguintes projetos:
 - Desafio.Credito.Domain → Regras de negócio
 - Desafio.Credito.Infrastructure → Persistência (SQL Server)
 - Desafio.Credito.Shared → DTOs
+- Desafio.Credito.Tests → Testes unitários
 - Desafio.Credito.Worker → Processamento assíncrono
 
 ---
@@ -40,7 +41,9 @@ A solução está organizada nos seguintes projetos:
 - SQL Server
 - Azure Service Bus
 - Azure Event Hub
-
+- xUnit
+- Moq
+- FluentAssertion
 ---
 
 ## 🔄 Fluxo de Processamento
@@ -108,6 +111,44 @@ SELECT COUNT(*) FROM EvolucaoContrato;
 
 Esperado:
 900 registros
+
+---
+
+## ✅ Testes Unitários
+
+A solução possui um projeto dedicado de testes unitários:
+
+- Desafio.Credito.Tests
+
+Os testes foram criados para validar os principais comportamentos da aplicação nas camadas mais relevantes da solução:
+
+### Cobertura atual dos testes
+
+- **Domínio**
+  - validação da lógica de cálculo da Tabela Price;
+  - geração correta da quantidade de registros por prazo;
+  - consistência da evolução diária;
+  - amortização apenas a cada 30 dias;
+  - saldo final zerado ao término do contrato;
+  - comportamento da prestação fixa, considerando eventual ajuste residual na última parcela.
+
+- **API**
+  - validação de payload inválido;
+  - retorno `BadRequest` para dados inconsistentes;
+  - retorno `OK` para payload válido;
+  - garantia de chamada correta da camada de serviço.
+
+- **Worker**
+  - processamento de mensagem válida;
+  - tratamento de mensagem inválida;
+  - comportamento em falha de API;
+  - comportamento em falha de persistência;
+  - validação do registro do payload original nos logs de processamento.
+
+### Como executar os testes
+
+```bash
+dotnet test
 
 ---
 
