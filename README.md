@@ -1,11 +1,17 @@
 # 💰 Desafio Técnico – Cálculo de Crédito (Tabela Price)
-![.NET](https://img.shields.io/badge/.NET-8-blue)
-![C#](https://img.shields.io/badge/C%23-Programming-green)
-![SQL Server](https://img.shields.io/badge/Database-SQL%20Server-red)
-![Entity Framework](https://img.shields.io/badge/ORM-Entity%20Framework-purple)
-![Azure Service Bus](https://img.shields.io/badge/Messaging-Service%20Bus-orange)
-![Azure Event Hub](https://img.shields.io/badge/Streaming-Event%20Hub-yellow)
-![Architecture](https://img.shields.io/badge/Architecture-Clean%20Architecture-lightgrey)
+<p align="center">
+
+![.NET](https://img.shields.io/badge/.NET-8-blue?logo=dotnet)
+![C#](https://img.shields.io/badge/C%23-Programming-green?logo=csharp)
+![SQL Server](https://img.shields.io/badge/SQL%20Server-Database-red?logo=microsoftsqlserver)
+![EF Core](https://img.shields.io/badge/EF%20Core-ORM-purple)
+![Azure](https://img.shields.io/badge/Azure-Cloud-blue?logo=microsoftazure)
+![Service Bus](https://img.shields.io/badge/Service%20Bus-Messaging-orange)
+![Event Hub](https://img.shields.io/badge/Event%20Hub-Streaming-yellow)
+![Architecture](https://img.shields.io/badge/Clean%20Architecture-Design-lightgrey)
+![Status](https://img.shields.io/badge/status-complete-success)
+
+</p>
 ## 📌 Visão Geral
 
 Esta aplicação foi desenvolvida em **.NET 8** com o objetivo de processar contratos de crédito utilizando o sistema de amortização **Tabela Price**, com **evolução diária do contrato**.
