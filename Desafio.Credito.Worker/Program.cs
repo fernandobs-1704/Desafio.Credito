@@ -23,10 +23,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IEvolucaoContratoRepository, EvolucaoContratoRepository>();
 
 // HTTP CLIENT (API)
-builder.Services.AddHttpClient<PriceApiClient>((sp, client) =>
+builder.Services.AddHttpClient<IPriceApiClient, PriceApiClient>(client =>
 {
-    var settings = builder.Configuration.GetSection("AppSettings").Get<AppSettings>();
-    client.BaseAddress = new Uri(settings.BaseUrl);
+    var url = builder.Configuration["AppSettings:BaseUrl"];
+    client.BaseAddress = new Uri(url);
 });
 
 // SERVICE BUS

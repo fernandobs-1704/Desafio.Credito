@@ -2,6 +2,7 @@
 using Desafio.Credito.Domain.Interfaces;
 using Desafio.Credito.Shared.Dtos.Price;
 using Desafio.Credito.Worker.Clients;
+using Desafio.Credito.Worker.Enums;
 using Desafio.Credito.Worker.Logging;
 using Desafio.Credito.Worker.Services;
 using Newtonsoft.Json;
@@ -40,7 +41,6 @@ public class ServiceBusConsumer
 
         await _processor.StartProcessingAsync(cancellationToken);
 
-        // Mantém o worker vivo até cancelarem ou até a gente parar o processor
         while (!cancellationToken.IsCancellationRequested &&
                _processor != null &&
                _processor.IsProcessing)
@@ -51,17 +51,11 @@ public class ServiceBusConsumer
 
     private async Task ProcessMessageAsync(ProcessMessageEventArgs args)
     {
-        // Blindagem extra para processar só 1 mensagem
-        if (_mensagensProcessadas >= 1)
-        {
-            return;
-        }
-
-        using var scope = _serviceProvider.CreateScope();
-
-        var apiClient = scope.ServiceProvider.GetRequiredService<PriceApiClient>();
-        var repository = scope.ServiceProvider.GetRequiredService<IEvolucaoContratoRepository>();
-        var logService = scope.ServiceProvider.GetRequiredService<ILogEventService>();
+        // Opção para ler somente uma única mensagem para os testes pois a fila está com muitas msgs
+        //if (_mensagensProcessadas >= 1)
+        //{
+        //    return;
+        //}
 
         string body = args.Message.Body.ToString();
         string queueName = _config["ServiceBus:QueueName"] ?? string.Empty;
@@ -73,13 +67,49 @@ public class ServiceBusConsumer
             correlationId = Guid.NewGuid().ToString("N");
         }
 
-        Console.WriteLine("----- MENSAGEM RECEBIDA -----");
-        Console.WriteLine(body);
+        var resultado = await ProcessarMensagemCoreAsync(
+            body,
+            queueName,
+            messageId,
+            correlationId,
+            args.Message.DeliveryCount,
+            args.Message.EnqueuedTime);
+
+        if (resultado == ResultadoProcessamentoMensagem.Complete)
+        {
+            await args.CompleteMessageAsync(args.Message);
+        }
+        else if (resultado == ResultadoProcessamentoMensagem.DeadLetter)
+        {
+            await args.DeadLetterMessageAsync(args.Message, "Payload inválido");
+        }
+        else
+        {
+            await args.AbandonMessageAsync(args.Message);
+        }
+
+        _mensagensProcessadas = 1;
+        await _processor.StopProcessingAsync();
+    }
+
+    public async Task<ResultadoProcessamentoMensagem> ProcessarMensagemCoreAsync(
+        string body,
+        string queueName,
+        string messageId,
+        string correlationId,
+        int deliveryCount,
+        DateTimeOffset enqueuedTimeUtc)
+    {
+        using var scope = _serviceProvider.CreateScope();
+
+        var apiClient = scope.ServiceProvider.GetRequiredService<IPriceApiClient>();
+        var repository = scope.ServiceProvider.GetRequiredService<IEvolucaoContratoRepository>();
+        var logService = scope.ServiceProvider.GetRequiredService<ILogEventService>();
 
         string detalheInicio =
             "Mensagem recebida da fila para processamento. " +
-            "DeliveryCount: " + args.Message.DeliveryCount +
-            " | EnqueuedTimeUtc: " + args.Message.EnqueuedTime.UtcDateTime.ToString("o");
+            "DeliveryCount: " + deliveryCount +
+            " | EnqueuedTimeUtc: " + enqueuedTimeUtc.UtcDateTime.ToString("o");
 
         await TentarRegistrarLogAsync(
             logService,
@@ -102,8 +132,6 @@ public class ServiceBusConsumer
                 request.TaxaJurosMensal <= 0 ||
                 request.PrazoMeses <= 0)
             {
-                Console.WriteLine("Payload inválido. Enviando para DeadLetter...");
-
                 await TentarRegistrarLogAsync(
                     logService,
                     CriarLog(
@@ -115,8 +143,6 @@ public class ServiceBusConsumer
                         body,
                         "Payload inválido. Os campos valorEmprestimo, taxaJurosMensal e prazoMeses devem ser maiores que zero.",
                         null));
-
-                await args.DeadLetterMessageAsync(args.Message, "Payload inválido");
 
                 await TentarRegistrarLogAsync(
                     logService,
@@ -130,12 +156,7 @@ public class ServiceBusConsumer
                         "Mensagem enviada para Dead Letter Queue por falha de validação.",
                         null));
 
-                Console.WriteLine("Mensagem enviada para DeadLetter.");
-
-                _mensagensProcessadas = 1;
-                await _processor.StopProcessingAsync();
-
-                return;
+                return ResultadoProcessamentoMensagem.DeadLetter;
             }
 
             await TentarRegistrarLogAsync(
@@ -150,7 +171,6 @@ public class ServiceBusConsumer
                     "Iniciando chamada à API de cálculo Price.",
                     null));
 
-            Console.WriteLine("Chamando API...");
             var response = await apiClient.CalcularAsync(request);
 
             await TentarRegistrarLogAsync(
@@ -177,7 +197,6 @@ public class ServiceBusConsumer
                     "Iniciando persistência da evolução do contrato no banco de dados.",
                     null));
 
-            Console.WriteLine("Salvando no banco...");
             await repository.SalvarAsync(response, CancellationToken.None);
 
             await TentarRegistrarLogAsync(
@@ -192,9 +211,6 @@ public class ServiceBusConsumer
                     "Persistência da evolução do contrato concluída com sucesso.",
                     null));
 
-            Console.WriteLine("Finalizando mensagem...");
-            await args.CompleteMessageAsync(args.Message);
-
             await TentarRegistrarLogAsync(
                 logService,
                 CriarLog(
@@ -207,20 +223,10 @@ public class ServiceBusConsumer
                     "Mensagem processada com sucesso e concluída no Service Bus.",
                     null));
 
-            Console.WriteLine("Mensagem processada com sucesso.");
-
-            _mensagensProcessadas = 1;
-            await _processor.StopProcessingAsync();
-
-            Console.WriteLine("Worker parado após processar 1 única mensagem.");
+            return ResultadoProcessamentoMensagem.Complete;
         }
         catch (HttpRequestException ex)
         {
-            Console.WriteLine("######## ERRO NA CHAMADA DA API ########");
-            Console.WriteLine("Mensagem: " + ex.Message);
-            Console.WriteLine("Detalhes: " + ex.ToString());
-            Console.WriteLine("########################################");
-
             await TentarRegistrarLogAsync(
                 logService,
                 CriarLog(
@@ -232,8 +238,6 @@ public class ServiceBusConsumer
                     body,
                     "Erro ao chamar a API Price.",
                     ex));
-
-            await args.AbandonMessageAsync(args.Message);
 
             await TentarRegistrarLogAsync(
                 logService,
@@ -247,18 +251,10 @@ public class ServiceBusConsumer
                     "Mensagem abandonada após erro na chamada da API.",
                     null));
 
-            _mensagensProcessadas = 1;
-            await _processor.StopProcessingAsync();
-
-            Console.WriteLine("Worker parado após erro na 1ª mensagem.");
+            return ResultadoProcessamentoMensagem.Abandon;
         }
         catch (InvalidOperationException ex)
         {
-            Console.WriteLine("######## ERRO DE PROCESSAMENTO ########");
-            Console.WriteLine("Mensagem: " + ex.Message);
-            Console.WriteLine("Detalhes: " + ex.ToString());
-            Console.WriteLine("######################################");
-
             await TentarRegistrarLogAsync(
                 logService,
                 CriarLog(
@@ -270,8 +266,6 @@ public class ServiceBusConsumer
                     body,
                     "Erro operacional durante o processamento ou persistência dos dados.",
                     ex));
-
-            await args.AbandonMessageAsync(args.Message);
 
             await TentarRegistrarLogAsync(
                 logService,
@@ -285,18 +279,10 @@ public class ServiceBusConsumer
                     "Mensagem abandonada após erro operacional.",
                     null));
 
-            _mensagensProcessadas = 1;
-            await _processor.StopProcessingAsync();
-
-            Console.WriteLine("Worker parado após erro operacional na 1ª mensagem.");
+            return ResultadoProcessamentoMensagem.Abandon;
         }
         catch (Exception ex)
         {
-            Console.WriteLine("######## ERRO NO PROCESSAMENTO ########");
-            Console.WriteLine("Mensagem: " + ex.Message);
-            Console.WriteLine("Detalhes: " + ex.ToString());
-            Console.WriteLine("######################################");
-
             await TentarRegistrarLogAsync(
                 logService,
                 CriarLog(
@@ -308,8 +294,6 @@ public class ServiceBusConsumer
                     body,
                     "Erro não tratado durante o processamento da mensagem.",
                     ex));
-
-            await args.AbandonMessageAsync(args.Message);
 
             await TentarRegistrarLogAsync(
                 logService,
@@ -323,10 +307,7 @@ public class ServiceBusConsumer
                     "Mensagem abandonada após erro inesperado.",
                     null));
 
-            _mensagensProcessadas = 1;
-            await _processor.StopProcessingAsync();
-
-            Console.WriteLine("Worker parado após erro inesperado na 1ª mensagem.");
+            return ResultadoProcessamentoMensagem.Abandon;
         }
     }
 
@@ -376,9 +357,8 @@ public class ServiceBusConsumer
         {
             await logService.LogAsync(log);
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine("Erro ao gravar log no Event Hub: " + ex.Message);
         }
     }
 }
