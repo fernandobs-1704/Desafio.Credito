@@ -14,7 +14,7 @@ public class ServiceBusConsumer
     private readonly IConfiguration _config;
     private readonly IServiceProvider _serviceProvider;
     private ServiceBusProcessor _processor;
-    private int _mensagensProcessadas = 0;
+    //private int _mensagensProcessadas = 0;
 
     public ServiceBusConsumer(IConfiguration config, IServiceProvider serviceProvider)
     {
@@ -88,7 +88,7 @@ public class ServiceBusConsumer
             await args.AbandonMessageAsync(args.Message);
         }
 
-        _mensagensProcessadas = 1;
+        //_mensagensProcessadas = 1;
         await _processor.StopProcessingAsync();
     }
 
