@@ -83,7 +83,6 @@ Para execução da aplicação em ambiente local, é necessário possuir:
 
 ### Verificação do .NET
 
-```bash
 dotnet --version
 
 ---
