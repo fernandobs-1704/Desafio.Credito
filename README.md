@@ -82,13 +82,8 @@ dotnet ef database update --project Desafio.Credito.Infrastructure --startup-pro
 
 ### 3. Executar aplicação
 
-Basta executar a solução (F5 no Visual Studio).
-
-A aplicação está configurada para iniciar:
-- API
-- Worker
-
-automaticamente em conjunto.
+Configurar a solução para "Vários projetos de inicialização" através do menu "propriedades" e escolher opção "iniciar" na Api e Worker. 
+Executar a solução (F5 no Visual Studio).
 
 ---
 
