@@ -107,6 +107,3 @@ Esperado:
 
 ---
 
-## 👨‍💻 Autor
-
-Desenvolvido para avaliação técnica – Coordenação de TI
