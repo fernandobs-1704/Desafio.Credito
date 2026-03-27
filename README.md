@@ -120,6 +120,7 @@ Esperado:
 - Processamento assíncrono
 - Logs estruturados (Event Hub)
 - Arquitetura escalável
+- Cobertura de testes para domínio, API e Worker
 
 ---
 
