@@ -5,48 +5,57 @@ namespace Desafio.Credito.Domain.Services;
 
 public class CalculadoraPriceService : ICalculadoraPriceService
 {
+    private const int DiasPorMes = 30;
+
     public CalcularPriceResponseDto Calcular(CalcularPriceRequestDto request)
     {
         var response = new CalcularPriceResponseDto();
 
-        decimal valorEmprestimo = request.ValorEmprestimo;
+        decimal valorEmprestimo = ArredondarMoeda(request.ValorEmprestimo);
         decimal taxaMensalPercentual = request.TaxaJurosMensal;
         int prazoMeses = request.PrazoMeses;
 
-        int prazoDias = prazoMeses * 30;
-
+        int prazoDias = prazoMeses * DiasPorMes;
         decimal taxaMensal = taxaMensalPercentual / 100m;
 
-        double taxaDiariaDouble = Math.Pow((double)(1 + taxaMensal), 1.0 / 30.0) - 1.0;
-        decimal taxaDiaria = (decimal)taxaDiariaDouble;
+        decimal prestacaoFixa = CalcularPrestacaoPrice(valorEmprestimo, taxaMensal, prazoMeses);
+        decimal taxaDiaria = CalcularTaxaDiariaEquivalente(taxaMensal);
 
-        decimal prestacao = CalcularPrestacaoPrice(valorEmprestimo, taxaMensal, prazoMeses);
-        decimal saldoDevedor = valorEmprestimo;
-        decimal jurosAcumuladosPeriodo = 0m;
+        decimal saldoBasePeriodo = valorEmprestimo;
+        decimal saldoProjetado = valorEmprestimo;
+        decimal jurosAcumuladoPeriodo = 0m;
 
         for (int dia = 1; dia <= prazoDias; dia++)
         {
-            decimal jurosDoDia = Math.Round(saldoDevedor * taxaDiaria, 10);
-            jurosAcumuladosPeriodo += jurosDoDia;
+            decimal jurosDoDia = ArredondarMoeda(saldoProjetado * taxaDiaria);
+            jurosAcumuladoPeriodo = ArredondarMoeda(jurosAcumuladoPeriodo + jurosDoDia);
+            saldoProjetado = ArredondarMoeda(saldoProjetado + jurosDoDia);
 
-            decimal prestacaoDia = 0m;
-            decimal jurosPeriodoDia = 0m;
+            decimal prestacaoDia = prestacaoFixa;
+            decimal jurosPeriodoDia = jurosAcumuladoPeriodo;
             decimal amortizacaoDia = 0m;
+            decimal saldoAposPagarDia = saldoProjetado;
 
-            if (dia % 30 == 0)
+            if (dia % DiasPorMes == 0)
             {
-                jurosPeriodoDia = Math.Round(jurosAcumuladosPeriodo, 2);
-                prestacaoDia = Math.Round(prestacao, 2);
-                amortizacaoDia = Math.Round(prestacaoDia - jurosPeriodoDia, 2);
+                amortizacaoDia = ArredondarMoeda(prestacaoFixa - jurosAcumuladoPeriodo);
 
-                saldoDevedor = Math.Round(saldoDevedor - amortizacaoDia, 2);
-
-                if (dia == prazoDias || saldoDevedor < 0)
+                if (dia == prazoDias)
                 {
-                    saldoDevedor = 0m;
+                    amortizacaoDia = saldoBasePeriodo;
+                    prestacaoDia = ArredondarMoeda(jurosAcumuladoPeriodo + amortizacaoDia);
                 }
 
-                jurosAcumuladosPeriodo = 0m;
+                saldoBasePeriodo = ArredondarMoeda(saldoBasePeriodo - amortizacaoDia);
+
+                if (saldoBasePeriodo < 0m)
+                {
+                    saldoBasePeriodo = 0m;
+                }
+
+                saldoProjetado = saldoBasePeriodo;
+                saldoAposPagarDia = saldoBasePeriodo;
+                jurosAcumuladoPeriodo = 0m;
             }
 
             response.Evolucao.Add(new EvolucaoPriceDto
@@ -55,26 +64,37 @@ public class CalculadoraPriceService : ICalculadoraPriceService
                 Prestacao = prestacaoDia,
                 JurosPeriodo = jurosPeriodoDia,
                 Amortizacao = amortizacaoDia,
-                SaldoAposPagar = saldoDevedor
+                SaldoAposPagar = saldoAposPagarDia
             });
         }
 
         return response;
     }
 
-    private decimal CalcularPrestacaoPrice(decimal principal, decimal taxaMensal, int prazoMeses)
+    private static decimal CalcularPrestacaoPrice(decimal principal, decimal taxaMensal, int prazoMeses)
     {
-        if (taxaMensal == 0)
+        if (taxaMensal == 0m)
         {
-            return Math.Round(principal / prazoMeses, 2);
+            return ArredondarMoeda(principal / prazoMeses);
         }
 
         double p = (double)principal;
         double i = (double)taxaMensal;
         int n = prazoMeses;
 
-        double prestacao = p * (i * Math.Pow(1 + i, n)) / (Math.Pow(1 + i, n) - 1);
+        double prestacao = p * (i * Math.Pow(1d + i, n)) / (Math.Pow(1d + i, n) - 1d);
 
-        return Math.Round((decimal)prestacao, 2);
+        return ArredondarMoeda((decimal)prestacao);
+    }
+
+    private static decimal CalcularTaxaDiariaEquivalente(decimal taxaMensal)
+    {
+        double taxaDiaria = Math.Pow((double)(1m + taxaMensal), 1d / DiasPorMes) - 1d;
+        return (decimal)taxaDiaria;
+    }
+
+    private static decimal ArredondarMoeda(decimal valor)
+    {
+        return Math.Round(valor, 2, MidpointRounding.AwayFromZero);
     }
 }

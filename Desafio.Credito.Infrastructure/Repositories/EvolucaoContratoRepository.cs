@@ -21,6 +21,7 @@ public class EvolucaoContratoRepository : IEvolucaoContratoRepository
             return;
         }
 
+        //Repetir a mesma data para o processamento da mensagem
         var dataProcessamento = DateTime.UtcNow;
 
         var entidades = response.Evolucao.Select(item => new EvolucaoContrato

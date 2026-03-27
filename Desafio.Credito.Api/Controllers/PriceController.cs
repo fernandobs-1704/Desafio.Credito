@@ -9,20 +9,16 @@ namespace Desafio.Credito.Api.Controllers;
 public class PriceController : ControllerBase
 {
     private readonly ICalculadoraPriceService _calculadoraPriceService;
-    private readonly IEvolucaoContratoRepository _evolucaoContratoRepository;
 
-    public PriceController(
-        ICalculadoraPriceService calculadoraPriceService,
-        IEvolucaoContratoRepository evolucaoContratoRepository)
+    public PriceController(ICalculadoraPriceService calculadoraPriceService)
     {
         _calculadoraPriceService = calculadoraPriceService;
-        _evolucaoContratoRepository = evolucaoContratoRepository;
     }
 
     [HttpPost("calcular")]
-    public async Task<IActionResult> Calcular(
-        [FromBody] CalcularPriceRequestDto request,
-        CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(CalcularPriceResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult Calcular([FromBody] CalcularPriceRequestDto request)
     {
         if (request == null)
         {
@@ -45,8 +41,6 @@ public class PriceController : ControllerBase
         }
 
         var response = _calculadoraPriceService.Calcular(request);
-
-        await _evolucaoContratoRepository.SalvarAsync(response, cancellationToken);
 
         return Ok(response);
     }

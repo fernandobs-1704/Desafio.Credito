@@ -1,25 +1,42 @@
+using Desafio.Credito.Domain.Interfaces;
+using Desafio.Credito.Infrastructure;
+using Desafio.Credito.Infrastructure.Data;
+using Desafio.Credito.Infrastructure.Repositories;
 using Desafio.Credito.Worker;
+using Desafio.Credito.Worker.Clients;
 using Desafio.Credito.Worker.Configurations;
+using Desafio.Credito.Worker.Consumers;
 using Desafio.Credito.Worker.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = Host.CreateApplicationBuilder(args);
 
+// CONFIG
 builder.Services.Configure<AppSettings>(
     builder.Configuration.GetSection("AppSettings"));
 
-builder.Services.AddHttpClient<PriceApiClient>((serviceProvider, client) =>
-{
-    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-    var baseUrl = configuration["AppSettings:BaseUrl"];
+// DB
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-    client.BaseAddress = new Uri(baseUrl!);
+// REPOSITORY
+builder.Services.AddScoped<IEvolucaoContratoRepository, EvolucaoContratoRepository>();
+
+// HTTP CLIENT (API)
+builder.Services.AddHttpClient<PriceApiClient>((sp, client) =>
+{
+    var settings = builder.Configuration.GetSection("AppSettings").Get<AppSettings>();
+    client.BaseAddress = new Uri(settings.BaseUrl);
 });
 
-builder.Services.AddHostedService<Worker>();
-
-builder.Services.Configure<ServiceBusSettings>(
-    builder.Configuration.GetSection("ServiceBus"));
+// SERVICE BUS
 builder.Services.AddSingleton<ServiceBusConsumer>();
+
+// EVENT HUB
+builder.Services.AddSingleton<ILogEventService, LogEventService>();
+
+// WORKER
+builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();
 host.Run();
