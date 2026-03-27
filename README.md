@@ -86,6 +86,8 @@ Para execução da aplicação em ambiente local, é necessário possuir:
 ```bash
 dotnet --version
 
+---
+
 ## 🚀 Execução
 
 ### 1. Restaurar pacotes
